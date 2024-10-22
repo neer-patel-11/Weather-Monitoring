@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Monitoring</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script>
+    // Function to convert Celsius to Kelvin
+    function convertToKelvin(tempCelsius) {
+      return (parseFloat(tempCelsius) + 273.15).toFixed(2);
+    }
+
+    // Function to switch between Celsius and Kelvin
+    function switchUnit() {
+      const unit = document.getElementById('unit').value;
+      const temps = document.querySelectorAll('.temp');
+      const feelsLikes = document.querySelectorAll('.feels_like');
+      
+      temps.forEach(temp => {
+        const tempCelsius = temp.dataset.celsius;
+        temp.textContent = unit === 'kelvin' 
+          ? convertToKelvin(tempCelsius) + ' K' 
+          : tempCelsius + ' °C';
+      });
+
+      feelsLikes.forEach(feelsLike => {
+        const feelsLikeCelsius = feelsLike.dataset.celsius;
+        feelsLike.textContent = unit === 'kelvin' 
+          ? convertToKelvin(feelsLikeCelsius) + ' K' 
+          : feelsLikeCelsius + ' °C';
+      });
+    }
+
+    // Function to fetch the latest weather data from the server
+    const fetchLatestWeather = async () => {
+      const response = await fetch('/api/weather');
+      const data = await response.json();
+
+      // Update the weather display
+      const weatherContainers = document.querySelectorAll('.city');
+      data.forEach((weather, index) => {
+        if (weather) {
+          const tempElem = weatherContainers[index].querySelector('.temp');
+          const feelsLikeElem = weatherContainers[index].querySelector('.feels_like');
+          const lastUpdatedElem = weatherContainers[index].querySelector('.last-updated');
+
+          tempElem.dataset.celsius = weather.temp; // Update the data attribute
+          tempElem.textContent = weather.temp + ' °C'; // Show in Celsius
+
+          feelsLikeElem.dataset.celsius = weather.feels_like; // Update the data attribute
+          feelsLikeElem.textContent = weather.feels_like + ' °C'; // Show in Celsius
+
+          lastUpdatedElem.textContent = `Last Updated: ${new Date(weather.dt * 1000).toLocaleTimeString()}`;
+        }
+      });
+    };
+
+    // Set an interval to fetch the latest weather data every 1 minute (adjust as needed)
+    setInterval(fetchLatestWeather, 60000);
+  </script>
+</head>
+<body>
+  <h1>Real-Time Weather Monitoring</h1>
+
+  <!-- Form for configuring the polling interval -->
+  <form action="/" method="GET">
+    <label for="interval">Polling Interval (in minutes):</label>
+    <input type="number" id="interval" name="interval" value="<%= interval %>" min="1">
+    <button type="submit">Set Interval</button>
+  </form>
+
+  <!-- Temperature unit switch -->
+  <label for="unit">Choose temperature unit:</label>
+  <select id="unit" onchange="switchUnit()">
+    <option value="celsius" selected>Celsius</option>
+    <option value="kelvin">Kelvin</option>
+  </select>
+
+  <div class="weather-container">
+    <% weatherData.forEach(data => { %>
+      <% if (data) { %>
+        <div class="city">
+          <h2><%= data.city %></h2>
+          <p>Main Weather: <%= data.main_weather %></p>
+          <p>Temperature: <span class="temp" data-celsius="<%= data.temp %>"><%= data.temp %> °C</span></p>
+          <p>Feels Like: <span class="feels_like" data-celsius="<%= data.feels_like %>"><%= data.feels_like %> °C</span></p>
+          <p class="last-updated">Last Updated: <%= new Date(data.dt * 1000).toLocaleTimeString() %></p>
+        </div>
+      <% } else { %>
+        <p>Unable to fetch data for one of the cities.</p>
+      <% } %>
+    <% }); %>
+  </div>
+</body>
+</html>
