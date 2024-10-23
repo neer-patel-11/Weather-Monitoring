@@ -5,7 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weather Monitoring</title>
   <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <h1>Real-Time Weather Monitoring</h1>
+
+  <!-- Temperature unit switch -->
+  <label for="unit">Choose temperature unit:</label>
+  <select id="unit" onchange="switchUnit()">
+    <option value="celsius" selected>Celsius</option>
+    <option value="kelvin">Kelvin</option>
+  </select>
+
+  <!-- API call interval input -->
+  <label for="interval">Set API call interval (minutes):</label>
+  <input type="number" id="interval" value="5" min="1" onchange="setAPICallInterval()">
+
+  <div class="weather-container">
+    <% weatherData.forEach(data => { %>
+      <% if (data) { %>
+        <div class="city" id="city-<%= data.city %>">
+          <h2><%= data.city %></h2>
+          <p>Main Weather: <%= data.main_weather %></p>
+          <p>Temperature: <span class="temp" data-celsius="<%= data.temp %>"><%= data.temp %> °C</span></p>
+          <p>Feels Like: <span class="feels_like" data-celsius="<%= data.feels_like %>"><%= data.feels_like %> °C</span></p>
+          <p class="last-updated">Last Updated: <%= new Date(data.dt * 1000).toLocaleTimeString() %></p>
+        </div>
+      <% } else { %>
+        <p>Unable to fetch data for one of the cities.</p>
+      <% } %>
+    <% }); %>
+  </div>
+
+  <h2>Daily Weather Summaries</h2>
+  <div class="summary-container">
+    <% summaries.forEach(summary => { %>
+      <div class="summary" id="summary-<%= summary.city %>">
+        <h3><%= summary.city %> - <%= summary.date %></h3>
+        <p>Average Temperature: <%= summary.avgTemp.toFixed(2) %> °C</p>
+        <p>Maximum Temperature: <%= summary.maxTemp %> °C</p>
+        <p>Minimum Temperature: <%= summary.minTemp %> °C</p>
+        <p>Dominant Weather: <%= summary.dominantWeather %></p>
+      </div>
+    <% }); %>
+  </div>
+
   <script>
+    let apiInterval;
+
     // Function to convert Celsius to Kelvin
     function convertToKelvin(tempCelsius) {
       return (parseFloat(tempCelsius) + 273.15).toFixed(2);
@@ -16,7 +62,7 @@
       const unit = document.getElementById('unit').value;
       const temps = document.querySelectorAll('.temp');
       const feelsLikes = document.querySelectorAll('.feels_like');
-      
+
       temps.forEach(temp => {
         const tempCelsius = temp.dataset.celsius;
         temp.textContent = unit === 'kelvin' 
@@ -32,65 +78,51 @@
       });
     }
 
-    // Function to fetch the latest weather data from the server
-    const fetchLatestWeather = async () => {
-      const response = await fetch('/api/weather');
-      const data = await response.json();
+    // Function to fetch weather data from the backend
+    function fetchWeatherData() {
+      console.log("yes")
+      fetch('/api/weather') // Fetch updated weather data
+        .then(response => response.json())
+        .then(data => {
+          // Update the weather data and summaries in the DOM
+          data.weatherData.forEach(weather => {
+            const cityElement = document.getElementById(`city-${weather.city}`);
+            if (cityElement) {
+              const tempElement = cityElement.querySelector('.temp');
+              const feelsLikeElement = cityElement.querySelector('.feels_like');
+              const lastUpdatedElement = cityElement.querySelector('.last-updated');
 
-      // Update the weather display
-      const weatherContainers = document.querySelectorAll('.city');
-      data.forEach((weather, index) => {
-        if (weather) {
-          const tempElem = weatherContainers[index].querySelector('.temp');
-          const feelsLikeElem = weatherContainers[index].querySelector('.feels_like');
-          const lastUpdatedElem = weatherContainers[index].querySelector('.last-updated');
+              tempElement.dataset.celsius = weather.temp;
+              tempElement.textContent = weather.temp + ' °C';
+              feelsLikeElement.dataset.celsius = weather.feels_like;
+              feelsLikeElement.textContent = weather.feels_like + ' °C';
+              lastUpdatedElement.textContent = 'Last Updated: ' + new Date(weather.dt * 1000).toLocaleTimeString();
+            }
+          });
 
-          tempElem.dataset.celsius = weather.temp; // Update the data attribute
-          tempElem.textContent = weather.temp + ' °C'; // Show in Celsius
+          data.summaries.forEach(summary => {
+            const summaryElement = document.getElementById(`summary-${summary.city}`);
+            if (summaryElement) {
+              summaryElement.querySelector('p:nth-of-type(1)').textContent = 'Average Temperature: ' + summary.avgTemp.toFixed(2) + ' °C';
+              summaryElement.querySelector('p:nth-of-type(2)').textContent = 'Maximum Temperature: ' + summary.maxTemp + ' °C';
+              summaryElement.querySelector('p:nth-of-type(3)').textContent = 'Minimum Temperature: ' + summary.minTemp + ' °C';
+              summaryElement.querySelector('p:nth-of-type(4)').textContent = 'Dominant Weather: ' + summary.dominantWeather;
+            }
+          });
+        })
+        .catch(error => console.error('Error fetching weather data:', error));
+    }
 
-          feelsLikeElem.dataset.celsius = weather.feels_like; // Update the data attribute
-          feelsLikeElem.textContent = weather.feels_like + ' °C'; // Show in Celsius
+    // Function to set the API call interval
+    function setAPICallInterval() {
+      clearInterval(apiInterval);
+      const interval = document.getElementById('interval').value * 60 * 1000; // Convert to milliseconds
+      console.log(interval)
+      apiInterval = setInterval(fetchWeatherData, interval);
+    }
 
-          lastUpdatedElem.textContent = `Last Updated: ${new Date(weather.dt * 1000).toLocaleTimeString()}`;
-        }
-      });
-    };
-
-    // Set an interval to fetch the latest weather data every 1 minute (adjust as needed)
-    setInterval(fetchLatestWeather, 60000);
+    // Initialize the API call interval
+    setAPICallInterval();
   </script>
-</head>
-<body>
-  <h1>Real-Time Weather Monitoring</h1>
-
-  <!-- Form for configuring the polling interval -->
-  <form action="/" method="GET">
-    <label for="interval">Polling Interval (in minutes):</label>
-    <input type="number" id="interval" name="interval" value="<%= interval %>" min="1">
-    <button type="submit">Set Interval</button>
-  </form>
-
-  <!-- Temperature unit switch -->
-  <label for="unit">Choose temperature unit:</label>
-  <select id="unit" onchange="switchUnit()">
-    <option value="celsius" selected>Celsius</option>
-    <option value="kelvin">Kelvin</option>
-  </select>
-
-  <div class="weather-container">
-    <% weatherData.forEach(data => { %>
-      <% if (data) { %>
-        <div class="city">
-          <h2><%= data.city %></h2>
-          <p>Main Weather: <%= data.main_weather %></p>
-          <p>Temperature: <span class="temp" data-celsius="<%= data.temp %>"><%= data.temp %> °C</span></p>
-          <p>Feels Like: <span class="feels_like" data-celsius="<%= data.feels_like %>"><%= data.feels_like %> °C</span></p>
-          <p class="last-updated">Last Updated: <%= new Date(data.dt * 1000).toLocaleTimeString() %></p>
-        </div>
-      <% } else { %>
-        <p>Unable to fetch data for one of the cities.</p>
-      <% } %>
-    <% }); %>
-  </div>
 </body>
 </html>
