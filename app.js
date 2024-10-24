@@ -1,4 +1,5 @@
 require('dotenv').config();
+const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const express = require('express');
 const axios = require('axios');
@@ -9,7 +10,8 @@ const port = 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
-
+// Middleware to parse JSON bodies
+app.use(express.json()); 
 
 // Connect to MongoDB
 mongoose.connect('mongodb://localhost:27017/weatherDB', {
@@ -135,6 +137,46 @@ cron.schedule('*/1 * * * *', async () => {
     await fetchWeather(city);
   }
 });
+
+
+
+// Email alert function
+async function sendAlertEmail(city, threshold,triggerMail) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: triggerMail,  // Email to send alerts to
+    subject: `Weather Alert for ${city}`,
+    text: `The temperature in ${city} has exceeded the threshold of ${threshold}°C for the given consecutive updates.`,
+  };
+
+  try {
+    // await transporter.sendMail(mailOptions);
+    console.log(`Alert email sent for ${city}`);
+  } catch (err) {
+    console.error('Error sending alert email:', err);
+  }
+}
+
+// API route to trigger email alert
+app.post('/api/alert', async (req, res) => {
+  const { city, threshold ,triggerMail} = req.body;
+  try {
+    console.log("got the trigger")
+    await sendAlertEmail(city, threshold,triggerMail);
+    res.json({ message: `Alert triggered for ${city} exceeding ${threshold}°C` });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to trigger alert' });
+  }
+});
+
 
 // Serve static files
 app.use(express.static('public'));

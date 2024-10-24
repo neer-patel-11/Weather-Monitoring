@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weather Monitoring</title>
+  <title>Weather Monitoring with Alerts</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <h1>Real-Time Weather Monitoring</h1>
+  <h1>Real-Time Weather Monitoring with Alerts</h1>
 
   <!-- Dropdown to select city -->
   <label for="city">Choose city:</label>
-  <select id="city" onchange="fetchWeatherData()">
+  <select id="city" onchange="fetchWeatherData()" default="Delhi">
     <option value="Delhi" selected>Delhi</option>
     <option value="Mumbai">Mumbai</option>
     <option value="Chennai">Chennai</option>
@@ -29,7 +29,19 @@
 
   <!-- API call interval input -->
   <label for="interval">Set API call interval (minutes):</label>
-  <input type="number" id="interval" value="5" min="1" onchange="setAPICallInterval()">
+  <input type="number" id="interval" value="1" min="1" onchange="setAPICallInterval()">
+
+  <!-- Threshold Alert Configuration -->
+  <h2>Set Alert Thresholds</h2>
+  
+  <label for="triggerMail">Trigger Mail</label>
+  <input type="mail" id="triggerMail">
+
+  <label for="threshold">Temperature Threshold (°C):</label>
+  <input type="number" id="threshold" value="35">
+  
+  <label for="breachCount">Number of consecutive breaches:</label>
+  <input type="number" id="breachCount" value="2" min="1">
 
   <div class="weather-container">
     <!-- This container will display weather data for the selected city -->
@@ -56,6 +68,7 @@
 
   <script>
     let apiInterval;
+    let breachCounter = 0;
 
     // Function to convert Celsius to Kelvin
     function convertToKelvin(tempCelsius) {
@@ -82,45 +95,81 @@
     // Function to fetch weather data for the selected city
     function fetchWeatherData() {
       const city = document.getElementById('city').value;
-      fetch(`/api/weather?city=${city}`) // Pass city as a query parameter
+      fetch(`/api/weather?city=${city}`)
         .then(response => response.json())
         .then(data => {
           if (data.weatherData && data.summaries) {
             const weather = data.weatherData[0];
             const summary = data.summaries[0];
 
-            // Update the weather details in the DOM
             document.getElementById('city-name').textContent = weather.city;
             const tempElement = document.getElementById('temp');
-            const feelsLikeElement = document.getElementById('feels_like');
-            const lastUpdatedElement = document.getElementById('last-updated');
-
             tempElement.dataset.celsius = weather.temp;
             tempElement.textContent = weather.temp + ' °C';
-            feelsLikeElement.dataset.celsius = weather.feels_like;
-            feelsLikeElement.textContent = weather.feels_like + ' °C';
-            lastUpdatedElement.textContent = 'Last Updated: ' + new Date(weather.dt * 1000).toLocaleTimeString();
 
-            // Update the summary details in the DOM
+            document.getElementById('feels_like').dataset.celsius = weather.feels_like;
+            document.getElementById('feels_like').textContent = weather.feels_like + ' °C';
+            document.getElementById('last-updated').textContent = 'Last Updated: ' + new Date(weather.dt * 1000).toLocaleTimeString();
+
+            // Update the summary
             document.getElementById('summary-city-name').textContent = summary.city + ' - ' + summary.date;
             document.getElementById('avg-temp').textContent = summary.avgTemp.toFixed(2) + ' °C';
             document.getElementById('max-temp').textContent = summary.maxTemp + ' °C';
             document.getElementById('min-temp').textContent = summary.minTemp + ' °C';
             document.getElementById('dominant-weather').textContent = summary.dominantWeather;
+
+            checkForThresholdBreach(weather.temp);
           }
-          switchUnit()
+          switchUnit();
         })
         .catch(error => console.error('Error fetching weather data:', error));
+    }
+
+    // Function to check for temperature threshold breach
+    function checkForThresholdBreach(currentTemp) {
+      const threshold = document.getElementById('threshold').value;
+      const breachLimit = document.getElementById('breachCount').value;
+
+      if (currentTemp > threshold) {
+        breachCounter++;
+      } else {
+        breachCounter = 0;  // Reset if the threshold is not breached
+      }
+
+      if (breachCounter >= breachLimit) {
+        // Trigger alert API call
+        triggerAlert();
+        breachCounter = 0;  // Reset after triggering the alert
+      }
+    }
+
+    // Function to trigger an alert API call
+    function triggerAlert() {
+      const city = document.getElementById('city').value;
+      const threshold = document.getElementById('threshold').value;
+      const triggerMail = document.getElementById('triggerMail').value
+      console.log(city)
+      fetch('/api/alert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ city, threshold }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Alert sent:', data.message);
+        })
+        .catch(error => console.error('Error triggering alert:', error));
     }
 
     // Function to set the API call interval
     function setAPICallInterval() {
       clearInterval(apiInterval);
-      const interval = document.getElementById('interval').value * 60 * 1000; // Convert to milliseconds
+      const interval = document.getElementById('interval').value * 60 * 1000;
       apiInterval = setInterval(fetchWeatherData, interval);
     }
 
-    // Initialize by fetching weather data for the default city (Delhi)
     fetchWeatherData();
     setAPICallInterval();
   </script>
