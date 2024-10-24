@@ -158,7 +158,7 @@ async function sendAlertEmail(city, threshold,triggerMail) {
   };
 
   try {
-    // await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
     console.log(`Alert email sent for ${city}`);
   } catch (err) {
     console.error('Error sending alert email:', err);
@@ -174,6 +174,31 @@ app.post('/api/alert', async (req, res) => {
     res.json({ message: `Alert triggered for ${city} exceeding ${threshold}°C` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to trigger alert' });
+  }
+});
+
+// Route to get daily weather summary for chart data (last 7 days for a city)
+app.get('/api/chart-data', async (req, res) => {
+  const city = req.query.city || 'Delhi';
+  const startDate = moment().subtract(7, 'days').format('YYYY-MM-DD');  // Fetch data for the last 7 days
+
+  try {
+    const summaries = await WeatherSummary.find({ 
+      city, 
+      date: { $gte: startDate }  // Get data from the last 7 days
+    }).sort({ date: 1 });  // Sort by date in ascending order
+
+    const chartData = summaries.map(summary => ({
+      date: summary.date,
+      avgTemp: summary.avgTemp,
+      maxTemp: summary.maxTemp,
+      minTemp: summary.minTemp
+    }));
+
+    res.json({ chartData });
+  } catch (err) {
+    console.error(`Error fetching chart data for ${city}:`, err);
+    res.status(500).json({ error: 'Failed to fetch chart data' });
   }
 });
 

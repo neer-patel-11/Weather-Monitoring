@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weather Monitoring with Alerts</title>
   <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js -->
 </head>
 <body>
   <h1>Real-Time Weather Monitoring with Alerts</h1>
 
   <!-- Dropdown to select city -->
   <label for="city">Choose city:</label>
-  <select id="city" onchange="fetchWeatherData()" default="Delhi">
+  <select id="city" onchange="fetchWeatherData(); updateChartData();" default="Delhi">
     <option value="Delhi" selected>Delhi</option>
     <option value="Mumbai">Mumbai</option>
     <option value="Chennai">Chennai</option>
@@ -26,6 +27,10 @@
     <option value="celsius" selected>Celsius</option>
     <option value="kelvin">Kelvin</option>
   </select>
+
+  <!-- Chart Container -->
+  <h2>Temperature Trends (Last 7 Days)</h2>
+  <canvas id="weatherChart" width="400" height="200"></canvas> <!-- Chart.js canvas -->
 
   <!-- API call interval input -->
   <label for="interval">Set API call interval (minutes):</label>
@@ -43,8 +48,8 @@
   <label for="breachCount">Number of consecutive breaches:</label>
   <input type="number" id="breachCount" value="2" min="1">
 
+  <!-- Weather Data Container -->
   <div class="weather-container">
-    <!-- This container will display weather data for the selected city -->
     <div class="city" id="city-weather">
       <h2 id="city-name">City Name</h2>
       <p>Main Weather: <span id="main-weather"></span></p>
@@ -56,7 +61,6 @@
 
   <h2>Daily Weather Summary</h2>
   <div class="summary-container">
-    <!-- This container will display the daily summary for the selected city -->
     <div class="summary" id="city-summary">
       <h3 id="summary-city-name">City Summary</h3>
       <p>Average Temperature: <span id="avg-temp"></span></p>
@@ -69,6 +73,7 @@
   <script>
     let apiInterval;
     let breachCounter = 0;
+    let weatherChart;  // Declare the Chart instance
 
     // Function to convert Celsius to Kelvin
     function convertToKelvin(tempCelsius) {
@@ -94,7 +99,8 @@
 
     // Function to fetch weather data for the selected city
     function fetchWeatherData() {
-      const city = document.getElementById('city').value;
+      console.log("here")
+      const city = document.getElementById('city').value ;
       fetch(`/api/weather?city=${city}`)
         .then(response => response.json())
         .then(data => {
@@ -125,26 +131,60 @@
         .catch(error => console.error('Error fetching weather data:', error));
     }
 
-    // Function to check for temperature threshold breach
-    function checkForThresholdBreach(currentTemp) {
-      const threshold = document.getElementById('threshold').value;
-      const breachLimit = document.getElementById('breachCount').value;
+    // Function to fetch chart data
+    function updateChartData() {
+      const city = document.getElementById('city').value;
+      fetch(`/api/chart-data?city=${city}`)
+        .then(response => response.json())
+        .then(data => {
+          const chartData = data.chartData;
 
-      if (currentTemp > threshold) {
-        breachCounter++;
-      } else {
-        breachCounter = 0;  // Reset if the threshold is not breached
-      }
+          // Extract the data
+          const dates = chartData.map(entry => entry.date);
+          const avgTemps = chartData.map(entry => entry.avgTemp);
+          const maxTemps = chartData.map(entry => entry.maxTemp);
+          const minTemps = chartData.map(entry => entry.minTemp);
 
-      if (breachCounter >= breachLimit) {
-        // Trigger alert API call
-        triggerAlert();
-        breachCounter = 0;  // Reset after triggering the alert
-      }
+          // Update the chart
+          if (weatherChart) {
+            weatherChart.destroy();  // Destroy the old chart before creating a new one
+          }
+          const ctx = document.getElementById('weatherChart').getContext('2d');
+          weatherChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: dates,
+              datasets: [
+                { label: 'Avg Temp (°C)', data: avgTemps, borderColor: 'blue', fill: false },
+                { label: 'Max Temp (°C)', data: maxTemps, borderColor: 'red', fill: false },
+                { label: 'Min Temp (°C)', data: minTemps, borderColor: 'green', fill: false }
+              ]
+            },
+            options: {
+              scales: {
+                x: { title: { display: true, text: 'Date' } },
+                y: { title: { display: true, text: 'Temperature (°C)' } }
+              }
+            }
+          });
+        })
+        .catch(error => console.error('Error fetching chart data:', error));
     }
 
-    // Function to trigger an alert API call
-    function triggerAlert() {
+    // Initial data fetch
+    fetchWeatherData();
+    updateChartData();
+
+    // Set API call interval (default 1 minute)
+    function setAPICallInterval() {
+      clearInterval(apiInterval);
+      const interval = document.getElementById('interval').value || 1;
+      console.log(interval)
+      apiInterval = setInterval(fetchWeatherData, interval * 60000);  // Convert minutes to milliseconds
+    }
+
+       // Function to trigger an alert API call
+       function triggerAlert() {
       const city = document.getElementById('city').value;
       const threshold = document.getElementById('threshold').value;
       const triggerMail = document.getElementById('triggerMail').value
@@ -154,7 +194,7 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ city, threshold }),
+        body: JSON.stringify({ city, threshold,triggerMail }),
       })
         .then(response => response.json())
         .then(data => {
@@ -163,15 +203,24 @@
         .catch(error => console.error('Error triggering alert:', error));
     }
 
-    // Function to set the API call interval
-    function setAPICallInterval() {
-      clearInterval(apiInterval);
-      const interval = document.getElementById('interval').value * 60 * 1000;
-      apiInterval = setInterval(fetchWeatherData, interval);
-    }
 
-    fetchWeatherData();
-    setAPICallInterval();
+    // Function to check if temperature exceeds the threshold
+    function checkForThresholdBreach(temp) {
+      const threshold = document.getElementById('threshold').value;
+      const breachCount = document.getElementById('breachCount').value;
+
+      if (temp > threshold) {
+        breachCounter++;
+      } else {
+        breachCounter = 0;
+      }
+
+      if (breachCounter >= breachCount) {
+        triggerAlert();
+        alert('Threshold breach detected!');
+        breachCounter = 0;  // Reset after alert
+      }
+    }
   </script>
 </body>
 </html>
