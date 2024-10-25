@@ -84,5 +84,3 @@ node app.js
 <li><strong>EJS</strong>: Provides templating for dynamic data on the frontend.</li>
 <li><strong>Cron Jobs</strong>: Node-Cron schedules data fetching at fixed intervals.</li>
 </ul>
-
-
