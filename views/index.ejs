@@ -27,11 +27,7 @@
     <option value="celsius" selected>Celsius</option>
     <option value="kelvin">Kelvin</option>
   </select>
-
-  <!-- Chart Container -->
-  <h2>Temperature Trends (Last 7 Days)</h2>
-  <canvas id="weatherChart" width="400" height="200"></canvas> <!-- Chart.js canvas -->
-
+  
   <!-- API call interval input -->
   <label for="interval">Set API call interval (minutes):</label>
   <input type="number" id="interval" value="1" min="1" onchange="setAPICallInterval()">
@@ -49,6 +45,8 @@
   <input type="number" id="breachCount" value="2" min="1">
 
   <!-- Weather Data Container -->
+  <h2>Live Data</h2>
+
   <div class="weather-container">
     <div class="city" id="city-weather">
       <h2 id="city-name">City Name</h2>
@@ -58,18 +56,22 @@
       <p id="last-updated"></p>
     </div>
   </div>
-
+  
   <h2>Daily Weather Summary</h2>
   <div class="summary-container">
     <div class="summary" id="city-summary">
       <h3 id="summary-city-name">City Summary</h3>
       <p>Average Temperature: <span id="avg-temp"></span></p>
-      <p>Maximum Temperature: <span id="max-temp"></span></p>
-      <p>Minimum Temperature: <span id="min-temp"></span></p>
+      <p>MaxTemperature: <span id="max-temp"></span></p>
+      <p>Min Temperature: <span id="min-temp"></span></p>
       <p>Dominant Weather: <span id="dominant-weather"></span></p>
     </div>
   </div>
-
+  
+    <!-- Chart Container -->
+    <h2>Temperature Trends (Last 7 Days)</h2>
+    <canvas id="weatherChart" width="600" height="400"></canvas> <!-- Chart.js canvas -->
+  
   <script>
     let apiInterval;
     let breachCounter = 0;
@@ -99,7 +101,6 @@
 
     // Function to fetch weather data for the selected city
     function fetchWeatherData() {
-      console.log("here")
       const city = document.getElementById('city').value ;
       fetch(`/api/weather?city=${city}`)
         .then(response => response.json())
@@ -127,6 +128,7 @@
             checkForThresholdBreach(weather.temp);
           }
           switchUnit();
+          updateChartData();
         })
         .catch(error => console.error('Error fetching weather data:', error));
     }
@@ -179,7 +181,6 @@
     function setAPICallInterval() {
       clearInterval(apiInterval);
       const interval = document.getElementById('interval').value || 1;
-      console.log(interval)
       apiInterval = setInterval(fetchWeatherData, interval * 60000);  // Convert minutes to milliseconds
     }
 
@@ -188,7 +189,6 @@
       const city = document.getElementById('city').value;
       const threshold = document.getElementById('threshold').value;
       const triggerMail = document.getElementById('triggerMail').value
-      console.log(city)
       fetch('/api/alert', {
         method: 'POST',
         headers: {
