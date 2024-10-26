@@ -84,3 +84,10 @@ node app.js
 <li><strong>EJS</strong>: Provides templating for dynamic data on the frontend.</li>
 <li><strong>Cron Jobs</strong>: Node-Cron schedules data fetching at fixed intervals.</li>
 </ul>
+
+
+## Screenshots
+![Home](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/home.png)
+![Chart](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/chart.png)
+![ThresHold](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/threshold.png)
+![mail](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/mail.png)
