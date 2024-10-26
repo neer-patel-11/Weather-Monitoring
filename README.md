@@ -4,8 +4,8 @@
 This project is a real-time weather monitoring and alerting system that retrieves weather data from the OpenWeatherMap API, processes it, and provides summarized insights through rollups and aggregates. Designed for Indian metro cities, it includes daily summaries, alerting based on temperature thresholds, and visualizations of historical weather data.
 
 ## Features
-1. **Real-Time Data Retrieval**: Fetches weather data every 5 minutes from the OpenWeatherMap API for specified metro cities in India.
-2. **Temperature Conversion**: Converts temperature from Kelvin to Celsius or Fahrenheit, depending on user preference.
+1. **Real-Time Data Retrieval**: Fetches weather data every 1(user preference) minutes from the OpenWeatherMap API for specified metro cities in India.
+2. **Temperature Conversion**: Converts temperature from Kelvin to Celsius , depending on user preference.
 3. **Daily Weather Summary**:
    - Average, maximum, and minimum temperature
    - Dominant weather condition for each day
@@ -15,7 +15,7 @@ This project is a real-time weather monitoring and alerting system that retrieve
 ## Project Structure
 - **`app.js`**: Main server file, defines the application’s routes, alerting mechanism, and weather data processing.
 - **`index.ejs`**: Frontend template for displaying live data, summaries, and charts.
-- **Database**: MongoDB used for storing daily summaries and alert thresholds.
+- **Database**: MongoDB used for storing daily summaries.
 
 ## Getting Started
 
@@ -57,7 +57,7 @@ node app.js
 
 1. Real-Time Data Retrieval
 <ul>
-<li>Fetches data every 1(user can change) minutes from OpenWeatherMap API for cities: Delhi, Mumbai, Chennai, Bangalore, Kolkata, Hyderabad.</li>
+<li>Fetches data every 1(user preference) minutes from OpenWeatherMap API for cities: Delhi, Mumbai, Chennai, Bangalore, Kolkata, Hyderabad.</li>
 <li>Data fields: temperature, feels-like temperature, main weather condition, and timestamp.</li>
 </ul>
 
