@@ -91,3 +91,4 @@ node app.js
 ![Chart](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/chart.png)
 ![ThresHold](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/threshold.png)
 ![mail](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/mail.png)
+![mongoDB](https://raw.githubusercontent.com/neer-patel-11/Weather-Monitoring/refs/heads/main/screenshots/mongo.png)
